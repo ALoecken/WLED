@@ -368,6 +368,66 @@ uint16_t mode_fade(void) {
 static const char _data_FX_MODE_FADE[] PROGMEM = "Fade@!;!,!;!;01";
 
 
+/** RESET */
+bool need_to_reset = false;
+uint32_t time_offset = 0;
+bool end_of_pattern_reached = false;
+uint16_t mode_prepare_pattern(void) {
+  need_to_reset = true;
+  return FRAMETIME;
+}
+static const char _data_FX_MODE_PREPARE_PATTERN[] PROGMEM = "AL_Prepare_TimeReset@!;!,!;!;01";
+
+/*
+ * Fading between two colors using sine-wave with the period given as "Speed * 10"ms (e.g., speed of 200 would be 2seconds period = .5Hz)
+ */
+uint16_t mode_al_sine(void) {
+  uint16_t period = SEGMENT.speed * SEGMENT.intensity;
+  uint16_t counter = ((strip.now % period) * 65534 / period); // Adjusted for a frequency of 0.5 Hz
+  uint16_t lum = (32767 + sin16(counter)) / 256; 
+
+  SEGMENT.fill(color_blend(SEGCOLOR(0), SEGCOLOR(1), lum));
+
+  return FRAMETIME;
+}
+static const char _data_FX_MODE_AL_SINE[] PROGMEM = "AL_Full_Sine@Period in ms,Multiplicator;!,!;!;01";
+//<Effect parameters>;<Colors>;<Palette>;<Flags>;<Defaults>
+
+
+/*
+ * Filling with color 1 until filled. 
+ */
+uint16_t mode_al_fill(void) {
+  uint16_t duration = SEGMENT.speed * SEGMENT.intensity;
+
+  if (need_to_reset) {
+    time_offset = strip.now;
+    need_to_reset = false;
+    end_of_pattern_reached = false;
+  }
+  uint16_t local_offset = strip.now - time_offset;
+
+  if (local_offset > duration || end_of_pattern_reached){
+    end_of_pattern_reached = true;
+    SEGMENT.fill(SEGCOLOR(0));
+  } else {
+    uint16_t active_leds = roundf((float) (SEGLEN * local_offset) / (float)duration);
+    
+    for (int i = 0; i < active_leds; i++) {
+      SEGMENT.setPixelColor(i, SEGCOLOR(0));
+    }
+    for (int i = active_leds; i < SEGLEN ; i++) {
+      SEGMENT.setPixelColor(i, SEGCOLOR(1));
+    }
+  }
+
+
+  return FRAMETIME;
+}
+static const char _data_FX_MODE_AL_FILL[] PROGMEM = "AL_FillToStop@,Duration in ms,Multiplicator;!,!;!;01";
+
+
+
 /*
  * Scan mode parent function
  */
@@ -7881,6 +7941,11 @@ void WS2812FX::setupEffectData() {
   addEffect(FX_MODE_2DWAVINGCELL, &mode_2Dwavingcell, _data_FX_MODE_2DWAVINGCELL);
 
   addEffect(FX_MODE_2DAKEMI, &mode_2DAkemi, _data_FX_MODE_2DAKEMI); // audio
+
+  // custom
+  addEffect(FX_MODE_PREPARE_PATTERN, &mode_prepare_pattern, _data_FX_MODE_PREPARE_PATTERN);
+  addEffect(FX_MODE_AL_SINE, &mode_al_sine, _data_FX_MODE_AL_SINE); 
+  addEffect(FX_MODE_AL_FILL, &mode_al_fill, _data_FX_MODE_AL_FILL); 
 #endif // WLED_DISABLE_2D
 
 }

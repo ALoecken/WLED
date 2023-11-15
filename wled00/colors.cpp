@@ -6,6 +6,8 @@
 
 /*
  * color blend function
+ * 
+ * The blending factor (blend) is expected to be in the range [0, blendmax], where blendmax is either 0xFF or 0xFFFF based on the b16 flag.
  */
 uint32_t color_blend(uint32_t color1, uint32_t color2, uint16_t blend, bool b16) {
   if(blend == 0)   return color1;

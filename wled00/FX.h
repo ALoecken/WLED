@@ -320,7 +320,12 @@
 #define FX_MODE_ROCKTAVES              185
 #define FX_MODE_2DAKEMI                186
 
-#define MODE_COUNT                     187
+// custom
+#define FX_MODE_PREPARE_PATTERN        187
+#define FX_MODE_AL_SINE                188
+#define FX_MODE_AL_FILL                189
+
+#define MODE_COUNT                     190
 
 typedef enum mapping1D2D {
   M12_Pixels = 0,
